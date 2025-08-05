@@ -1,31 +1,30 @@
 import 'package:flutter/material.dart';
-import 'package:main_app/main.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+// import 'package:firebase_core/firebase_core.dart';
+// import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+// void main() async {
+//   WidgetsFlutterBinding.ensureInitialized();
+//   await Firebase.initializeApp();
 
-  // Setup background handler
-  // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+//   // Setup background handler
+//   // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // Setup local notifications
-  const AndroidInitializationSettings initializationSettingsAndroid =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
+//   // Setup local notifications
+//   const AndroidInitializationSettings initializationSettingsAndroid =
+//       AndroidInitializationSettings('@mipmap/ic_launcher');
 
-  final InitializationSettings initializationSettings =
-      InitializationSettings(android: initializationSettingsAndroid);
+//   final InitializationSettings initializationSettings =
+//       InitializationSettings(android: initializationSettingsAndroid);
 
-  // await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+//   // await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
-  runApp(MaterialApp(
-    home: CalendarPage(),
-  ));
-}
+//   runApp(MaterialApp(
+//     home: CalendarPage(),
+//   ));
+// }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -49,6 +48,14 @@ class CalendarPage extends StatefulWidget {
 
 class _CalendarPageState extends State<CalendarPage> {
   DateTime _selectedDay = DateTime.now();
+    final Stopwatch _stopwatch = Stopwatch();
+  Duration? _loadDuration;
+
+  @override
+  void initState() {
+    super.initState();
+    _stopwatch.start();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -107,15 +114,22 @@ class _CalendarPageState extends State<CalendarPage> {
                 );
               }
 
-              if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
+              // if (!snapshot.hasData) {
+              //   return const Center(child: CircularProgressIndicator());
+              // }
 
               final docs = snapshot.data!.docs;
 
               if (docs.isEmpty) {
                 return const Center(
                     child: Text('Tidak ada data di tanggal ini'));
+              } else {
+                if (_stopwatch.isRunning) {
+                  _stopwatch.stop();
+                  _loadDuration = _stopwatch.elapsed;
+                  debugPrint(
+                      "Load time History: ${_loadDuration!.inMilliseconds} ms");
+                }
               }
 
               return ListView.builder(
@@ -131,8 +145,8 @@ class _CalendarPageState extends State<CalendarPage> {
                           "Kelembapan: ${data['SensorValue'][0]['Humidity']}\n"
                           "Persentase: ${data['SensorValue'][0]['HumidityPercent']}%\n"
                           "Suhu: ${data['SensorValue'][0]['Temperature']}°C\n"
-                          "WaktuLengkap: ${data['SensorValue'][0]['Humidity']}\n"
-                          "WaktuTerima: ${data['SensorValue'][0]['Humidity']}\n"
+                          "WaktuLengkap: ${data['SensorValue'][0]['WaktuLengkap']}\n"
+                          "WaktuTerima: ${data['SensorValue'][0]['WaktuTerima']}\n"
                           "Tinggi Air: ${data['SensorValue'][0]['WaterLevel']}cm\n"
                           "Persentase Tinggi AIr: ${data['SensorValue'][0]['WaterLevelPercent']}%\n"),
                     ),

@@ -124,18 +124,18 @@ class _GuestPageState extends State<GuestPage> {
           ),
           Center(
             child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Mjpeg(
-                  stream: 'https://stream.terrium.my.id/stream',
-                  isLive: true,
-                ),
-                // PiTunnelVideoPlayer(
-                //   streamUrl:
-                //       // 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-                //       'https://stream.terrium.my.id/stream'
-                //       ,
-                // ),
-                ),
+              padding: const EdgeInsets.all(16.0),
+              child: Mjpeg(
+                stream: 'https://stream.terrium.my.id/stream',
+                isLive: true,
+              ),
+              // PiTunnelVideoPlayer(
+              //   streamUrl:
+              //       // 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+              //       'https://stream.terrium.my.id/stream'
+              //       ,
+              // ),
+            ),
           ),
           Positioned(
             bottom: 50,
@@ -256,34 +256,45 @@ class _HomePageState extends State<HomePage> {
   Widget _getPageContent(String title) {
     switch (title) {
       case 'Profile':
-        return FrogProfilePage();
+        return TimedWidget(
+          key: ValueKey(title),
+          label: 'Profile Page',
+          child: FrogProfilePage(),
+        );
       case 'Live Data':
-        return LiveData(
-          admin: widget.isAdmin,
+        return TimedWidget(
+          label: 'Live Data Page',
+          child: LiveData(admin: widget.isAdmin),
         );
       case 'Grafik':
-        // return GrafikData();
-        return SensorCharts();
-      // return Center(child: Text('SensorChart'));
+        return TimedWidget(
+          label: 'Grafik Page',
+          child: SensorCharts(),
+        );
       case 'Livestream':
-        return Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child:Mjpeg(
-                  stream: 'https://stream.terrium.my.id/stream',
-                  isLive: true,
-            //     ), PiTunnelVideoPlayer(
-            //   streamUrl:
-            //       // 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-            //       'https://stream.terrium.my.id/stream',
-            //   // 'https://stream.terrium.my.id/stream', // ganti ini dengan link Pi Tunnel
+        return TimedWidget(
+          key: ValueKey(title),
+          label: 'Livestream Page',
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Mjpeg(
+                stream: 'https://stream.terrium.my.id/stream',
+                isLive: true,
+              ),
             ),
           ),
         );
       case 'History':
-        return CalendarPage();
+        return TimedWidget(
+          label: 'History Page',
+          child: CalendarPage(),
+        );
       default:
-        return LiveData(admin: widget.isAdmin);
+        return TimedWidget(
+          label: 'Default (Live Data)',
+          child: LiveData(admin: widget.isAdmin),
+        );
     }
   }
 
@@ -410,15 +421,20 @@ class SensorCharts extends StatefulWidget {
 
 class _SensorChartsState extends State<SensorCharts> {
   int _selectedDays = 1; // default 1 hari terakhir
+  final Stopwatch _stopwatch = Stopwatch();
+  Duration? _loadDuration;
+
+  @override
+  void initState() {
+    super.initState();
+    _stopwatch.start();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        SizedBox(
-          height: 100,
-        ),
-        // Dropdown toggle
+        const SizedBox(height: 100),
         Padding(
           padding: const EdgeInsets.all(8.0),
           child: DropdownButton<int>(
@@ -437,7 +453,6 @@ class _SensorChartsState extends State<SensorCharts> {
             },
           ),
         ),
-
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
@@ -446,38 +461,38 @@ class _SensorChartsState extends State<SensorCharts> {
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Image.asset(
-                          'lib/Assets/giphy.gif',
-                          width: 150,
-                          height: 150,
-                        ),
-                        const SizedBox(height: 16),
-                        const Text("Kodok lagi mikir..."),
-                      ],
-                    ),
-                  );
-                }
-                
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        'lib/Assets/giphy.gif',
+                        width: 150,
+                        height: 150,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text("Kodok lagi mikir..."),
+                    ],
+                  ),
+                );
+              }
+
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Center(
-                    child: Center(
-                  child: Text("Data Kosong"),
-                ));
+                return const Center(child: Text("Data Kosong"));
+              } else {
+                if (_stopwatch.isRunning) {
+                  _stopwatch.stop();
+                  _loadDuration = _stopwatch.elapsed;
+                  debugPrint("Load time Grafik: ${_loadDuration!.inMilliseconds} ms");
+                }
               }
 
               final allDocs = snapshot.data!.docs;
-
-              // Filter & parse
               final filtered = parseAndFilterData(allDocs, _selectedDays);
 
               return SingleChildScrollView(
                 child: Column(
                   children: [
-                    const SizedBox(height: 16),
                     Card(
                       margin: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 8),
@@ -487,9 +502,9 @@ class _SensorChartsState extends State<SensorCharts> {
                       child: Padding(
                         padding: const EdgeInsets.all(10),
                         child: _buildChart("Temperature (°C)", filtered,
-                            'temperature', Colors.orange, 20, 30),
-                      ),
-                    ),
+                        'temperature', Colors.orange, 20, 30),
+                      )),
+                    const SizedBox(height: 16),
                     Card(
                       margin: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 8),
@@ -498,22 +513,10 @@ class _SensorChartsState extends State<SensorCharts> {
                           borderRadius: BorderRadius.circular(12)),
                       child: Padding(
                         padding: const EdgeInsets.all(10),
-                        child: _buildChart("Humidity (%)", filtered,
-                            'humidityPercent', Colors.blue, 0, 100),
-                      ),
-                    ),
-                    Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: _buildChart("Water Level (%)", filtered,
-                            'waterLevelPercent', Colors.green, 0, 100),
-                      ),
-                    ),
+                        child:  _buildChart("Humidity (%)", filtered,
+                        'humidityPercent', Colors.blue, 0, 100),
+                      )),
+                    const SizedBox(height: 16),
                     Card(
                       margin: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 8),
@@ -523,22 +526,9 @@ class _SensorChartsState extends State<SensorCharts> {
                       child: Padding(
                         padding: const EdgeInsets.all(10),
                         child: _buildChart("Water Level (%)", filtered,
-                            'waterLevelPercent', Colors.green, 0, 100),
-                      ),
-                    ),
-                    Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: _buildChart("Water Level (%)", filtered,
-                            'waterLevelPercent', Colors.green, 0, 100),
-                      ),
-                    ),
-                    const SizedBox(height: 100),
+                        'waterLevelPercent', Colors.green, 0, 100),
+                      )),
+                    const SizedBox(height: 16),
                   ],
                 ),
               );
@@ -565,9 +555,7 @@ class _SensorChartsState extends State<SensorCharts> {
         'humidityPercent': (sensor['HumidityPercent'] as num).toDouble(),
         'waterLevelPercent': (sensor['WaterLevelPercent'] as num).toDouble(),
       };
-    })
-        // Filter hanya data dengan timestamp valid dan setelah cutoff
-        .where((data) {
+    }).where((data) {
       final ts = data['timestamp'];
       return ts is DateTime && ts.isAfter(cutoff);
     }).toList();
@@ -585,7 +573,8 @@ class _SensorChartsState extends State<SensorCharts> {
     final List<FlSpot> spots = data.asMap().entries.map((entry) {
       final index = entry.key.toDouble();
       final value = entry.value[key] as double;
-      return FlSpot(index, value);
+      final clampedValue = value.clamp(min, max); // 🔧 Clamp value
+      return FlSpot(index, clampedValue);
     }).toList();
 
     return Padding(
@@ -600,28 +589,28 @@ class _SensorChartsState extends State<SensorCharts> {
             child: LineChart(
               LineChartData(
                 titlesData: FlTitlesData(
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        reservedSize: 40,
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          int index = value.toInt();
-                          if (index < 0 || index >= data.length)
-                            return const Text('');
-                          final date = data[index]['timestamp'] as DateTime;
-                          return Text(DateFormat('MM/dd\nHH:mm').format(date),
-                              style: const TextStyle(fontSize: 10));
-                        },
-                        interval: data.length / 5,
-                      ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      reservedSize: 40,
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        int index = value.toInt();
+                        if (index < 0 || index >= data.length)
+                          return const Text('');
+                        final date = data[index]['timestamp'] as DateTime;
+                        return Text(
+                          DateFormat('MM/dd\nHH:mm').format(date),
+                          style: const TextStyle(fontSize: 10),
+                        );
+                      },
+                      interval: data.length / 5,
                     ),
-                    // leftTitles: AxisTitles(
-                    //   sideTitles: SideTitles(showTitles: true, interval: 10),
-                    // ),
-                    rightTitles:
-                        AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles:
-                        AxisTitles(sideTitles: SideTitles(showTitles: false))),
+                  ),
+                  rightTitles:
+                      AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles:
+                      AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                ),
                 gridData: FlGridData(show: true),
                 borderData: FlBorderData(show: true),
                 minX: 0,
@@ -658,6 +647,7 @@ class _SensorChartsState extends State<SensorCharts> {
   }
 }
 
+
 class HistoryData extends StatefulWidget {
   const HistoryData({super.key});
 
@@ -670,9 +660,12 @@ class _HistoryDataState extends State<HistoryData> {
   List<HistoryEntry> _allData = [];
   List<HistoryEntry> _filteredData = [];
 
+  final Stopwatch _stopwatch = Stopwatch();
+
   @override
   void initState() {
     super.initState();
+    _stopwatch.start();
     _fetchData(); // initial fetch
   }
 
@@ -726,13 +719,6 @@ class _HistoryDataState extends State<HistoryData> {
       }
     });
   }
-
-  // Fungsi export CSV dihapus / di-comment agar tidak aktif
-  /*
-  Future<void> _exportToCSV() async {
-    // kode export CSV
-  }
-  */
 
   @override
   Widget build(BuildContext context) {
@@ -832,59 +818,6 @@ class HistoryDataSource extends DataTableSource {
   int get selectedRowCount => 0;
 }
 
-// class HistoryData extends StatelessWidget {
-//   const HistoryData({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Column(
-//       children: [
-//         // const SizedBox(height: 100),
-//         Expanded(
-//           child: StreamBuilder<QuerySnapshot>(
-//             stream: DatabaseService.getTerrariumStream(),
-//             builder: (context, snapshot) {
-//               if (snapshot.hasError) {
-//                 return Center(child: Text("Error: ${snapshot.error}"));
-//               }
-//               if (!snapshot.hasData) {
-//                 return const Center(child: CircularProgressIndicator());
-//               }
-
-//               final docs = snapshot.data!.docs;
-//               final dataList = docs
-//                   .map((doc) {
-//                     final data = doc['SensorValue'][0];
-//                     return {
-//                       'timestamp': doc.id,
-//                       'temperature': data['Temperature'],
-//                       'humidity': data['Humidity'],
-//                       'water': data['WaterLevel'],
-//                     };
-//                   })
-//                   .toList()
-//                   .reversed
-//                   .toList();
-
-//               return ListView.builder(
-//                 itemCount: dataList.length,
-//                 itemBuilder: (context, index) {
-//                   final item = dataList[index];
-//                   return ListTile(
-//                     title: Text(item['timestamp']),
-//                     subtitle: Text(
-//                         "Temp: ${item['temperature']}°C | Humidity: ${item['humidity']} | Water: ${item['water']}"),
-//                   );
-//                 },
-//               );
-//             },
-//           ),
-//         ),
-//       ],
-//     );
-//   }
-// }
-
 class DatabaseService {
   static final CollectionReference terrariumCollection =
       FirebaseFirestore.instance.collection("Terrarium");
@@ -893,58 +826,6 @@ class DatabaseService {
     return terrariumCollection
         .orderBy(FieldPath.documentId, descending: true)
         .snapshots();
-  }
-}
-
-class SensorChart extends StatelessWidget {
-  final List<Map<String, dynamic>> dataList;
-
-  const SensorChart({super.key, required this.dataList});
-
-  @override
-  Widget build(BuildContext context) {
-    return LineChart(
-      LineChartData(
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: 50,
-              getTitlesWidget: (value, meta) {
-                int index = value.toInt();
-                if (index < 0 || index >= dataList.length)
-                  return const SizedBox();
-                return Text(dataList[index]['timestamp']
-                    .toString()
-                    .substring(11)); // jam
-              },
-            ),
-          ),
-        ),
-        lineBarsData: [
-          LineChartBarData(
-            spots: List.generate(
-                dataList.length,
-                (i) => FlSpot(i.toDouble(),
-                    (dataList[i]['temperature'] as num).toDouble())),
-            isCurved: true,
-            color: Colors.red,
-            dotData: FlDotData(show: false),
-            belowBarData: BarAreaData(show: false),
-          ),
-          LineChartBarData(
-            spots: List.generate(
-                dataList.length,
-                (i) => FlSpot(
-                    i.toDouble(), (dataList[i]['humidity'] as num).toDouble())),
-            isCurved: true,
-            color: Colors.blue,
-            dotData: FlDotData(show: false),
-            belowBarData: BarAreaData(show: false),
-          ),
-        ],
-      ),
-    );
   }
 }
 
@@ -963,9 +844,23 @@ String timeAgo(DateTime dateTime) {
   }
 }
 
-class LiveData extends StatelessWidget {
-  final bool admin;
+class LiveData extends StatefulWidget {
   const LiveData({super.key, required this.admin});
+  final bool admin;
+
+  @override
+  State<LiveData> createState() => _LiveDataState();
+}
+
+class _LiveDataState extends State<LiveData> {
+  final Stopwatch _stopwatch = Stopwatch();
+  Duration? _loadDuration;
+
+  @override
+  void initState() {
+    super.initState();
+    _stopwatch.start(); // mulai hitung waktu saat widget muncul
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -990,6 +885,13 @@ class LiveData extends StatelessWidget {
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
           );
+        } else {
+          if (_stopwatch.isRunning) {
+            _stopwatch.stop();
+            _loadDuration = _stopwatch.elapsed;
+            debugPrint(
+                "Load time Live Data: ${_loadDuration!.inMilliseconds} ms");
+          }
         }
 
         final doc = snapshot.data!.docs.first;
@@ -1127,7 +1029,7 @@ class LiveData extends StatelessWidget {
 
             // Tombol hapus
 
-            if (admin)
+            if (widget.admin)
               Center(
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
@@ -1437,5 +1339,34 @@ class _PiTunnelVideoPlayerState extends State<PiTunnelVideoPlayer> {
         ],
       ),
     );
+  }
+}
+
+class TimedWidget extends StatefulWidget {
+  final String label;
+  final Widget child;
+
+  const TimedWidget({super.key, required this.label, required this.child});
+
+  @override
+  State<TimedWidget> createState() => _TimedWidgetState();
+}
+
+class _TimedWidgetState extends State<TimedWidget> {
+  final Stopwatch _stopwatch = Stopwatch();
+
+  @override
+  void initState() {
+    super.initState();
+    _stopwatch.start();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _stopwatch.stop();
+      debugPrint('⏱ Render time for "${widget.label}": ${_stopwatch.elapsedMilliseconds} ms');
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
   }
 }
